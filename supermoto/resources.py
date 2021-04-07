@@ -32,28 +32,31 @@ def sqs_queue(queue_name: str, initial_message=None):
 
 def s3_bucket(bucket_name: str):
     client = boto3.client("s3", region_name="eu-west-1")
-    client.create_bucket(Bucket=bucket_name,
-                         CreateBucketConfiguration={
-                             'LocationConstraint': "eu-west-1"
-                         },
-                         )
+    client.create_bucket(
+        Bucket=bucket_name,
+        CreateBucketConfiguration={"LocationConstraint": "eu-west-1"},
+    )
 
 
 def ecs_cluster(definition: EcsCluster):
     client = boto3.client("ecs", region_name="eu-west-1")
-    ec2 = boto3.resource('ec2', region_name='eu-west-1')
+    ec2 = boto3.resource("ec2", region_name="eu-west-1")
     client.create_cluster(clusterName=definition.cluster_name)
     for td in definition.task_definitions:
-        client.register_task_definition(family=td, containerDefinitions=[{
-            "name": "supermoto-taskdef-" + td,
-            'memory': 400,
-            'essential': True,
-            'environment': [{
-                'name': 'AWS_ACCESS_KEY_ID',
-                'value': 'SOME_ACCESS_KEY'
-            }],
-            'logConfiguration': {'logDriver': 'json-file'}
-        }])
+        client.register_task_definition(
+            family=td,
+            containerDefinitions=[
+                {
+                    "name": "supermoto-taskdef-" + td,
+                    "memory": 400,
+                    "essential": True,
+                    "environment": [
+                        {"name": "AWS_ACCESS_KEY_ID", "value": "SOME_ACCESS_KEY"}
+                    ],
+                    "logConfiguration": {"logDriver": "json-file"},
+                }
+            ],
+        )
 
     test_instance = ec2.create_instances(
         # EXAMPLE_AMI_ID from Moto
@@ -66,4 +69,6 @@ def ecs_cluster(definition: EcsCluster):
         generate_instance_identity_document(test_instance)
     )
 
-    client.register_container_instance(cluster=definition.cluster_name, instanceIdentityDocument=instance_id_document)
+    client.register_container_instance(
+        cluster=definition.cluster_name, instanceIdentityDocument=instance_id_document
+    )

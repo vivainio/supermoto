@@ -18,8 +18,15 @@ def do_black(args):
     c("py -m black supermoto")
 
 
+def do_publish(args):
+    if os.path.isdir("dist"):
+        shutil.rmtree("dist")
+    c("py setup.py sdist")
+    c("twine upload dist/*")
+
+
 def do_test(args):
-    os.chdir("test")
+    os.chdir("tests")
     c("pytest")
 
 
