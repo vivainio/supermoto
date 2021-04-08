@@ -2,7 +2,7 @@ from distutils.core import setup
 
 setup(
     name="supermoto",
-    version="1.1.0",
+    version="1.1.1",
     description='Helpers for "moto" tests',
     author="Ville M. Vainio",
     author_email="ville.vainio@basware.com",

@@ -56,6 +56,12 @@ def s3_ls(bucket_name: str) -> List[str]:
     return [ent["Key"] for ent in resp["Contents"]]
 
 
+def sns_topic(topic_name: str) -> str:
+    """ returns arn that you need to use for publishing """
+    client = boto3.client("sns", region_name="eu-west-1")
+    created = client.create_topic(Name=topic_name)
+    return created["TopicArn"]
+
 
 def ecs_cluster(definition: EcsCluster):
     client = boto3.client("ecs", region_name="eu-west-1")
