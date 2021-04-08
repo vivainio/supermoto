@@ -13,12 +13,24 @@ class EcsCluster:
     task_definitions: List[str]
 
 
-def dynamo_table(table_name: str, id_attribute: str = "id"):
+def dynamo_table(table_name: str, id_attribute: str = "id", range_attribute = None):
     ddb = boto3.client("dynamodb")
+
+    attrdefs = [{"AttributeName": id_attribute, "AttributeType": "S"}]
+    keyschema = [{"AttributeName": id_attribute, "KeyType": "HASH"}]
+
+    if range_attribute is not None:
+        attrdefs.append({
+            "AttributeName": range_attribute, "AttributeType": "S"
+        })
+        keyschema.append({
+            "AttributeName": range_attribute, "KeyType": "RANGE"
+        })
+
     ddb.create_table(
-        AttributeDefinitions=[{"AttributeName": id_attribute, "AttributeType": "S"}],
+        AttributeDefinitions= attrdefs,
         TableName=table_name,
-        KeySchema=[{"AttributeName": id_attribute, "KeyType": "HASH"}],
+        KeySchema= keyschema,
         ProvisionedThroughput={"ReadCapacityUnits": 1, "WriteCapacityUnits": 1},
     )
 
@@ -36,6 +48,13 @@ def s3_bucket(bucket_name: str):
         Bucket=bucket_name,
         CreateBucketConfiguration={"LocationConstraint": "eu-west-1"},
     )
+
+def s3_ls(bucket_name: str) -> List[str]:
+    """ list all files in the bucket """
+    client = boto3.client("s3", region_name="eu-west-1")
+    resp = client.list_objects(Bucket=bucket_name)
+    return [ent["Key"] for ent in resp["Contents"]]
+
 
 
 def ecs_cluster(definition: EcsCluster):
