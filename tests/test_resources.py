@@ -3,7 +3,7 @@ from moto import mock_dynamodb2, mock_sqs, mock_s3, mock_ecs, mock_ec2
 
 from supermoto.resources import EcsCluster
 import boto3
-
+TEST_BUCKET = "bukeet"
 
 def test_dynamo_table():
     with mock_dynamodb2():
@@ -16,8 +16,21 @@ def test_sqs():
 
 
 def test_bucket():
+
     with mock_s3():
-        resources.s3_bucket("abababab")
+        put = resources.s3_bucket(TEST_BUCKET)
+        put("a/1", b"one")
+        put("a/2", b"two")
+        put("b/3", b"three")
+
+        ls = resources.s3_ls(TEST_BUCKET)
+        assert ls == ['a/1', 'a/2', 'b/3']
+
+        lsb = resources.s3_get_objects(TEST_BUCKET, "b")
+        assert lsb == {'b/3': b'three'}
+
+        all_objects = resources.s3_get_objects(TEST_BUCKET)
+        assert all_objects == {'a/1': b'one', 'a/2': b'two', 'b/3': b'three'}
 
 
 def test_ecs():

@@ -1,6 +1,6 @@
 import json
 from dataclasses import dataclass
-from typing import List, Callable, Any
+from typing import List, Callable, Any, Dict
 
 import boto3
 
@@ -13,7 +13,7 @@ class EcsCluster:
     task_definitions: List[str]
 
 
-def dynamo_table(table_name: str, id_attribute: str = "id", range_attribute = None):
+def dynamo_table(table_name: str, id_attribute: str = "id", range_attribute=None):
     ddb = boto3.client("dynamodb")
 
     attrdefs = [{"AttributeName": id_attribute, "AttributeType": "S"}]
@@ -28,9 +28,9 @@ def dynamo_table(table_name: str, id_attribute: str = "id", range_attribute = No
         })
 
     ddb.create_table(
-        AttributeDefinitions= attrdefs,
+        AttributeDefinitions=attrdefs,
         TableName=table_name,
-        KeySchema= keyschema,
+        KeySchema=keyschema,
         ProvisionedThroughput={"ReadCapacityUnits": 1, "WriteCapacityUnits": 1},
     )
 
@@ -46,18 +46,45 @@ def sqs_queue(queue_name: str) -> Callable[[Any], None]:
     return sqs_sender
 
 
-def s3_bucket(bucket_name: str):
+def s3_bucket(bucket_name: str) -> Callable[[str, bytes], None]:
+    """ returns function you can use to populate initial stuff to bucket """
     client = boto3.client("s3", region_name="eu-west-1")
     client.create_bucket(
         Bucket=bucket_name,
         CreateBucketConfiguration={"LocationConstraint": "eu-west-1"},
     )
 
+    def s3_put(key: str, cont: bytes) -> None:
+        client.put_object(
+            Bucket=bucket_name,
+            Key=key,
+            Body=cont
+        )
+
+    return s3_put
+
+
 def s3_ls(bucket_name: str) -> List[str]:
     """ list all files in the bucket """
     client = boto3.client("s3", region_name="eu-west-1")
     resp = client.list_objects(Bucket=bucket_name)
     return [ent["Key"] for ent in resp["Contents"]]
+
+
+def s3_get_objects(bucket_name: str, prefix: str = None) -> Dict[str, bytes]:
+    """ load all files in the bucket to dict"""
+    client = boto3.client("s3", region_name="eu-west-1")
+    if prefix:
+        resp = client.list_objects(Bucket=bucket_name, Prefix=prefix)
+    else:
+        resp = client.list_objects(Bucket=bucket_name)
+    objects = [ent["Key"] for ent in resp["Contents"]]
+
+    res = {}
+    for o in objects:
+        cont = client.get_object(Bucket=bucket_name, Key=o)
+        res[o] = cont["Body"].read()
+    return res
 
 
 def sns_topic(topic_name: str) -> str:
