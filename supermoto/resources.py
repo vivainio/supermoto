@@ -1,6 +1,6 @@
 import json
 from dataclasses import dataclass
-from typing import List
+from typing import List, Callable, Any
 
 import boto3
 
@@ -35,11 +35,15 @@ def dynamo_table(table_name: str, id_attribute: str = "id", range_attribute = No
     )
 
 
-def sqs_queue(queue_name: str, initial_message=None):
+def sqs_queue(queue_name: str) -> Callable[[Any], None]:
+    """ creates queue, returns function that can be used to send messages """
     sqs = boto3.client("sqs")
     sqs.create_queue(QueueName=queue_name)
-    if initial_message:
-        sqs.send_message(QueueUrl=queue_name, MessageBody=initial_message)
+
+    def sqs_sender(msg):
+        sqs.send_message(QueueUrl=queue_name, MessageBody=msg)
+
+    return sqs_sender
 
 
 def s3_bucket(bucket_name: str):
