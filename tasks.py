@@ -34,6 +34,13 @@ def default():
     show_help()
 
 
+def do_docs(args):
+    c("pdoc3 -o docs --force --html " + PACKAGE)
+    c(f"mv docs/{PACKAGE}/* docs")
+    os.rmdir("docs/supermoto")
+
+
+
 # library functions here (or in own module, whatever, I don't care)
 
 
