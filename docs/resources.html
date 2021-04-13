@@ -122,7 +122,26 @@ def sns_topic(topic_name: str) -&gt; str:
     return created[&#34;TopicArn&#34;]
 
 
+def ecs_ls(cluster_name: str, desired_status=&#34;RUNNING&#34;):
+    &#34;&#34;&#34; List (and describes) all the tasks running in ECS cluster, with specified status &#34;&#34;&#34;
+    client = boto3.client(&#34;ecs&#34;, region_name=&#34;eu-west-1&#34;)
+    tasks = client.list_tasks(cluster=cluster_name, desiredStatus=desired_status)
+    if not tasks:
+        return []
+
+    arns = tasks.get(&#34;taskArns&#34;, [])
+    if not arns:
+        return []
+
+    describe = client.describe_tasks(
+        cluster=cluster_name,
+        tasks=arns,
+        include=[&#34;TAGS&#34;]
+    )
+    return describe[&#34;tasks&#34;]
+
 def ecs_cluster(definition: EcsCluster):
+    &#34;&#34;&#34; Creates ecs cluster &#34;&#34;&#34;
     client = boto3.client(&#34;ecs&#34;, region_name=&#34;eu-west-1&#34;)
     ec2 = boto3.resource(&#34;ec2&#34;, region_name=&#34;eu-west-1&#34;)
     client.create_cluster(clusterName=definition.cluster_name)
@@ -200,12 +219,13 @@ def ecs_cluster(definition: EcsCluster):
 <span>def <span class="ident">ecs_cluster</span></span>(<span>definition: <a title="supermoto.resources.EcsCluster" href="#supermoto.resources.EcsCluster">EcsCluster</a>)</span>
 </code></dt>
 <dd>
-<div class="desc"></div>
+<div class="desc"><p>Creates ecs cluster</p></div>
 <details class="source">
 <summary>
 <span>Expand source code</span>
 </summary>
 <pre><code class="python">def ecs_cluster(definition: EcsCluster):
+    &#34;&#34;&#34; Creates ecs cluster &#34;&#34;&#34;
     client = boto3.client(&#34;ecs&#34;, region_name=&#34;eu-west-1&#34;)
     ec2 = boto3.resource(&#34;ec2&#34;, region_name=&#34;eu-west-1&#34;)
     client.create_cluster(clusterName=definition.cluster_name)
@@ -239,6 +259,34 @@ def ecs_cluster(definition: EcsCluster):
     client.register_container_instance(
         cluster=definition.cluster_name, instanceIdentityDocument=instance_id_document
     )</code></pre>
+</details>
+</dd>
+<dt id="supermoto.resources.ecs_ls"><code class="name flex">
+<span>def <span class="ident">ecs_ls</span></span>(<span>cluster_name: str, desired_status='RUNNING')</span>
+</code></dt>
+<dd>
+<div class="desc"><p>List (and describes) all the tasks running in ECS cluster, with specified status</p></div>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">def ecs_ls(cluster_name: str, desired_status=&#34;RUNNING&#34;):
+    &#34;&#34;&#34; List (and describes) all the tasks running in ECS cluster, with specified status &#34;&#34;&#34;
+    client = boto3.client(&#34;ecs&#34;, region_name=&#34;eu-west-1&#34;)
+    tasks = client.list_tasks(cluster=cluster_name, desiredStatus=desired_status)
+    if not tasks:
+        return []
+
+    arns = tasks.get(&#34;taskArns&#34;, [])
+    if not arns:
+        return []
+
+    describe = client.describe_tasks(
+        cluster=cluster_name,
+        tasks=arns,
+        include=[&#34;TAGS&#34;]
+    )
+    return describe[&#34;tasks&#34;]</code></pre>
 </details>
 </dd>
 <dt id="supermoto.resources.s3_bucket"><code class="name flex">
@@ -394,6 +442,7 @@ def ecs_cluster(definition: EcsCluster):
 <ul class="two-column">
 <li><code><a title="supermoto.resources.dynamo_table" href="#supermoto.resources.dynamo_table">dynamo_table</a></code></li>
 <li><code><a title="supermoto.resources.ecs_cluster" href="#supermoto.resources.ecs_cluster">ecs_cluster</a></code></li>
+<li><code><a title="supermoto.resources.ecs_ls" href="#supermoto.resources.ecs_ls">ecs_ls</a></code></li>
 <li><code><a title="supermoto.resources.s3_bucket" href="#supermoto.resources.s3_bucket">s3_bucket</a></code></li>
 <li><code><a title="supermoto.resources.s3_get_objects" href="#supermoto.resources.s3_get_objects">s3_get_objects</a></code></li>
 <li><code><a title="supermoto.resources.s3_ls" href="#supermoto.resources.s3_ls">s3_ls</a></code></li>
