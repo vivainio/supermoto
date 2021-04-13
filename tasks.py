@@ -37,7 +37,7 @@ def default():
 def do_docs(args):
     c("pdoc3 -o docs --force --html " + PACKAGE)
     c(f"mv docs/{PACKAGE}/* docs")
-    os.rmdir("docs/supermoto")
+    os.rmdir("docs/" + PACKAGE)
 
 
 

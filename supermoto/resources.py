@@ -94,6 +94,23 @@ def sns_topic(topic_name: str) -> str:
     return created["TopicArn"]
 
 
+def ecs_ls(cluster_name: str, desired_status="RUNNING"):
+    client = boto3.client("ecs", region_name="eu-west-1")
+    tasks = client.list_tasks(cluster=cluster_name, desiredStatus=desired_status)
+    if not tasks:
+        return []
+
+    arns = tasks.get("taskArns", [])
+    if not arns:
+        return []
+
+    describe = client.describe_tasks(
+        cluster=cluster_name,
+        tasks=arns,
+        include=["TAGS"]
+    )
+    return describe["tasks"]
+
 def ecs_cluster(definition: EcsCluster):
     client = boto3.client("ecs", region_name="eu-west-1")
     ec2 = boto3.resource("ec2", region_name="eu-west-1")
