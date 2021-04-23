@@ -35,6 +35,12 @@ def dynamo_table(table_name: str, id_attribute: str = "id", range_attribute=None
     )
 
 
+def dynamo_dump(table_name: str):
+    ddb = boto3.client("dynamodb")
+    r = ddb.scan(TableName=table_name)
+    return r["Items"]
+
+
 def sqs_queue(queue_name: str) -> Callable[[Any], None]:
     """ creates queue, returns function that can be used to send messages """
     sqs = boto3.client("sqs")
@@ -111,6 +117,7 @@ def ecs_ls(cluster_name: str, desired_status="RUNNING"):
         include=["TAGS"]
     )
     return describe["tasks"]
+
 
 def ecs_cluster(definition: EcsCluster):
     """ Creates ecs cluster """
