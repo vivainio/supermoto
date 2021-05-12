@@ -93,6 +93,22 @@ def s3_get_objects(bucket_name: str, prefix: str = None) -> Dict[str, bytes]:
     return res
 
 
+def s3_clear(bucket_name: str):
+    items = s3_ls(bucket_name)
+    client = boto3.client("s3", region_name="eu-west-1")
+    to_delete = [
+            {
+                "Key": key
+            } for key in items
+        ]
+    client.delete_objects(
+        Bucket=bucket_name,
+        Delete = {
+            "Objects": to_delete
+        }
+    )
+    
+
 def sns_topic(topic_name: str) -> str:
     """ returns arn that you need to use for publishing """
     client = boto3.client("sns", region_name="eu-west-1")
