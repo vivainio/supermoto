@@ -13,8 +13,13 @@ class EcsCluster:
     task_definitions: List[str]
 
 
-def dynamo_table(table_name: str, id_attribute: str = "id", range_attribute=None):
-    ddb = boto3.client("dynamodb")
+def dynamo_client():
+    """ overwrite this e.g. if you want to use local endpoint """
+    return boto3.client("dynamodb")
+
+
+def dynamo_table(table_name: str, id_attribute: str = "id", range_attribute=None, delete=False):
+    ddb = dynamo_client()
 
     attrdefs = [{"AttributeName": id_attribute, "AttributeType": "S"}]
     keyschema = [{"AttributeName": id_attribute, "KeyType": "HASH"}]
@@ -27,6 +32,12 @@ def dynamo_table(table_name: str, id_attribute: str = "id", range_attribute=None
             "AttributeName": range_attribute, "KeyType": "RANGE"
         })
 
+    if delete:
+        try:
+            ddb.delete_table(TableName=table_name)
+        except ddb.exceptions.ResourceNotFoundException:
+            ...
+
     ddb.create_table(
         AttributeDefinitions=attrdefs,
         TableName=table_name,
@@ -34,11 +45,20 @@ def dynamo_table(table_name: str, id_attribute: str = "id", range_attribute=None
         ProvisionedThroughput={"ReadCapacityUnits": 1, "WriteCapacityUnits": 1},
     )
 
+    def put_item(ent):
+        ddb.put_item(TableName=table_name, Item=ent)
+
+    return put_item
 
 def dynamo_dump(table_name: str):
-    ddb = boto3.client("dynamodb")
+    ddb = dynamo_client()
     r = ddb.scan(TableName=table_name)
     return r["Items"]
+
+
+def dynamo_ls() -> List[str]:
+    ddb = dynamo_client()
+    return ddb.list_tables()["TableNames"]
 
 
 def sqs_queue(queue_name: str) -> Callable[[Any], None]:
