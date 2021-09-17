@@ -1,6 +1,6 @@
 import json
 from dataclasses import dataclass
-from typing import List, Callable, Any, Dict
+from typing import List, Callable, Any, Dict, Optional
 
 import boto3
 
@@ -12,14 +12,30 @@ class EcsCluster:
     cluster_name: str
     task_definitions: List[str]
 
+_dynamo_endpoint = None
 
-def dynamo_client():
+def set_dynamo_endpoint_url(endpoint_url: Optional[str]):
+    """ use this to override endpoint, e.g. to local simulator """
+    global _dynamo_endpoint
+    _dynamo_endpoint = endpoint_url
+
+def dynamo_client() -> boto3.client:
     """ overwrite this e.g. if you want to use local endpoint """
+    if _dynamo_endpoint:
+        return boto3.client("dynamodb", endpoint_url=_dynamo_endpoint)
     return boto3.client("dynamodb")
+
+def dynamo_resource() -> boto3.resource:
+    """ overwrite this e.g. if you want to use local endpoint """
+    if _dynamo_endpoint:
+        return boto3.resource("dynamodb", endpoint_url=_dynamo_endpoint)
+
+    return boto3.resource("dynamodb")
 
 
 def dynamo_table(table_name: str, id_attribute: str = "id", range_attribute=None, delete=False):
-    ddb = dynamo_client()
+    ddb = dynamo_resource()
+    client = dynamo_client()
 
     attrdefs = [{"AttributeName": id_attribute, "AttributeType": "S"}]
     keyschema = [{"AttributeName": id_attribute, "KeyType": "HASH"}]
@@ -31,12 +47,14 @@ def dynamo_table(table_name: str, id_attribute: str = "id", range_attribute=None
         keyschema.append({
             "AttributeName": range_attribute, "KeyType": "RANGE"
         })
+    table = ddb.Table(table_name)
 
     if delete:
         try:
-            ddb.delete_table(TableName=table_name)
-        except ddb.exceptions.ResourceNotFoundException:
+            table.delete()
+        except client.exceptions.ResourceNotFoundException:
             ...
+
 
     ddb.create_table(
         AttributeDefinitions=attrdefs,
@@ -46,7 +64,7 @@ def dynamo_table(table_name: str, id_attribute: str = "id", range_attribute=None
     )
 
     def put_item(ent):
-        ddb.put_item(TableName=table_name, Item=ent)
+        table.put_item(Item=ent)
 
     return put_item
 
