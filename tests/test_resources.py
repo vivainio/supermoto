@@ -1,7 +1,7 @@
 from supermoto import resources
 from moto import mock_dynamodb2, mock_sqs, mock_s3, mock_ecs, mock_ec2
 
-from supermoto.resources import EcsCluster
+from supermoto.resources import EcsCluster, IndexSpec
 import boto3
 
 TEST_BUCKET = "bukeet"
@@ -9,10 +9,29 @@ TEST_BUCKET = "bukeet"
 
 def test_dynamo_table():
     with mock_dynamodb2():
-        resources.dynamo_table("hello")
+        putter = resources.dynamo_table("hello")
+        putter({
+            "id": "oneid",
+            "a": "1"
+        })
         dump = resources.dynamo_dump("hello")
-        assert dump == []
+        assert dump == [{'a': {'S': '1'}, 'id': {'S': 'oneid'}}]
 
+        putter = resources.dynamo_table("withindex", "pk", "sk", False, indexes=[
+            IndexSpec(name="Index1", pk="GSI1PK", sk="GSI1SK"),
+            IndexSpec(name="Index2", pk="GSI2PK", sk="GSI2SK")
+        ])
+
+        putter({
+            "pk": "a",
+            "sk": "b",
+            "GSI1PK": "ipk",
+            "GSI1SK": "isk"
+
+        })
+        idump = resources.dynamo_index_dump("withindex", "Index1")
+        assert idump == [{'pk': {'S': 'a'}, 'sk': {'S': 'b'}, 'GSI1PK': {'S': 'ipk'}, 'GSI1SK': {'S': 'isk'}}]
+        print(idump)
 
 def test_sqs():
     with mock_sqs():

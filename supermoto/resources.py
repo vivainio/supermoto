@@ -1,5 +1,5 @@
 import json
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from typing import List, Callable, Any, Dict, Optional
 
 import boto3
@@ -12,18 +12,22 @@ class EcsCluster:
     cluster_name: str
     task_definitions: List[str]
 
+
 _dynamo_endpoint = None
+
 
 def set_dynamo_endpoint_url(endpoint_url: Optional[str]):
     """ use this to override endpoint, e.g. to local simulator """
     global _dynamo_endpoint
     _dynamo_endpoint = endpoint_url
 
+
 def dynamo_client() -> boto3.client:
     """ overwrite this e.g. if you want to use local endpoint """
     if _dynamo_endpoint:
         return boto3.client("dynamodb", endpoint_url=_dynamo_endpoint)
     return boto3.client("dynamodb")
+
 
 def dynamo_resource() -> boto3.resource:
     """ overwrite this e.g. if you want to use local endpoint """
@@ -33,7 +37,16 @@ def dynamo_resource() -> boto3.resource:
     return boto3.resource("dynamodb")
 
 
-def dynamo_table(table_name: str, id_attribute: str = "id", range_attribute=None, delete=False):
+@dataclass
+class IndexSpec:
+    name: str
+    pk: str = "GSI1PK"
+    sk: str = "GSI1SK"
+    projection: Dict[str, Any] = field(default_factory=lambda: {"ProjectionType": "ALL"})
+
+
+def dynamo_table(table_name: str, id_attribute: str = "id", range_attribute=None, delete=False,
+                 indexes: List[IndexSpec] = []):
     ddb = dynamo_resource()
     client = dynamo_client()
 
@@ -55,12 +68,44 @@ def dynamo_table(table_name: str, id_attribute: str = "id", range_attribute=None
         except client.exceptions.ResourceNotFoundException:
             ...
 
+    kwargs = {}
+
+    def gsi(i: IndexSpec):
+        def keyschema(name: str, keytype: str):
+            return {
+                "AttributeName": name,
+                "KeyType": keytype
+            }
+
+        return {
+            "IndexName": i.name,
+            "KeySchema": [
+                keyschema(i.pk, "HASH"),
+                keyschema(i.sk, "RANGE")
+            ],
+            "Projection": i.projection
+        }
+
+    if indexes:
+        kwargs["GlobalSecondaryIndexes"] = [
+            gsi(i) for i in indexes
+        ]
+        for idx in indexes:
+            attrdefs.extend([{
+                "AttributeName": idx.pk,
+                "AttributeType": "S"
+            }, {
+                "AttributeName": idx.sk,
+                "AttributeType": "S"
+            }])
+
 
     ddb.create_table(
         AttributeDefinitions=attrdefs,
         TableName=table_name,
         KeySchema=keyschema,
         ProvisionedThroughput={"ReadCapacityUnits": 1, "WriteCapacityUnits": 1},
+        **kwargs
     )
 
     def put_item(ent):
@@ -68,9 +113,16 @@ def dynamo_table(table_name: str, id_attribute: str = "id", range_attribute=None
 
     return put_item
 
+
 def dynamo_dump(table_name: str):
     ddb = dynamo_client()
     r = ddb.scan(TableName=table_name)
+    return r["Items"]
+
+
+def dynamo_index_dump(table_name: str, index_name: str):
+    ddb = dynamo_client()
+    r = ddb.scan(TableName=table_name, IndexName=index_name)
     return r["Items"]
 
 
@@ -135,17 +187,17 @@ def s3_clear(bucket_name: str):
     items = s3_ls(bucket_name)
     client = boto3.client("s3", region_name="eu-west-1")
     to_delete = [
-            {
-                "Key": key
-            } for key in items
-        ]
+        {
+            "Key": key
+        } for key in items
+    ]
     client.delete_objects(
         Bucket=bucket_name,
-        Delete = {
+        Delete={
             "Objects": to_delete
         }
     )
-    
+
 
 def sns_topic(topic_name: str) -> str:
     """ returns arn that you need to use for publishing """
