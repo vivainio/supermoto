@@ -1,25 +1,13 @@
 from supermoto import resources
 from moto import mock_dynamodb2, mock_sqs, mock_s3, mock_ecs, mock_ec2
 
+from supermoto.ddbutil import key_adder
 from supermoto.resources import EcsCluster, IndexSpec
 import boto3
 from typing import List, Dict, Any, Tuple
 
 TEST_BUCKET = "bukeet"
 
-
-def key_adder(rules: List[Tuple[str, List[str]]]):
-    def addkeys(d: Dict[str, Any]):
-        for rulek, rulefields in rules:
-            parts = []
-            for field in rulefields:
-
-                parts.append(field.upper())
-                parts.append(str(d[field]))
-
-            d[rulek] = "#".join(parts)
-
-    return addkeys
 
 
 def test_dynamo_table():
@@ -43,7 +31,11 @@ def test_dynamo_table():
             ("sk", ["a", "b"]),
             ("GSI1PK", ["b"]),
             ("GSI1SK", ["a"])
-        ])
+        ],
+            {
+                "type": "MyType"
+            }
+        )
         to_add = {
             "a": 1,
             "b": 2
@@ -51,10 +43,12 @@ def test_dynamo_table():
 
         add_keys(to_add)
 
+        print(to_add)
+
         putter(to_add)
         idump = resources.dynamo_index_dump("withindex", "Index1")
         assert idump == [{'GSI1PK': {'S': 'B#2'},  'GSI1SK': {'S': 'A#1'},
-                          'a': {'N': '1'},  'b': {'N': '2'},  'pk': {'S': 'A#1'},  'sk': {'S': 'A#1#B#2'}}]
+                          'a': {'N': '1'},  'b': {'N': '2'},  'pk': {'S': 'A#1'},  'sk': {'S': 'A#1#B#2'}, "type": {"S": "MyType"}}]
         print(idump)
 
 
@@ -92,3 +86,5 @@ def test_ecs():
                            taskDefinition=cl.task_definitions[0]
                            )
         print(ran)
+
+
