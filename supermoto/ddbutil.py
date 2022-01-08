@@ -112,7 +112,6 @@ class Dao(Generic[TKey, TVal]):
             return None
         return self.valclass(**got)
 
-
     def query_pk(self, key: TKey):
         # this will stop at first None
         pkval = generate_keys_with_rules([self.rules[0]], key.dict())[self.spec.pk]
@@ -122,7 +121,7 @@ class Dao(Generic[TKey, TVal]):
         return got
 
     def query_beg(self, key: TKey):
-        return self.query_cond(key, lambda key, val: key.begins_with(val))
+        return self.query_cond(key, lambda k, val: k.begins_with(val))
 
     def query_cond(self, key: TKey, cond_function: Callable[[Key, str], Any]):
 
@@ -132,7 +131,7 @@ class Dao(Generic[TKey, TVal]):
         skval = generate_keys_with_rules([self.rules[1]], keyd)[self.spec.sk]
 
         other_cond = cond_function(Key(self.spec.sk), skval)
-        print(other_cond)
-        return self._table().query(
-            KeyConditionExpression=Key(self.spec.pk).eq(pkval) & other_cond )
 
+        res = self._table().query(
+            KeyConditionExpression=Key(self.spec.pk).eq(pkval) & other_cond)
+        return res.get("Items")

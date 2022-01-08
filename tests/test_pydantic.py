@@ -51,22 +51,28 @@ def test_serialize_model():
 
         fdao = Dao(FooKey, FooModel, db)
 
-        f = FooModel(k1="a1", date="12222", username="tauno")
-        fdao.add(f)
+        fdao.add(FooModel(k1="a1", date="a1", username="tauno"))
+        fdao.add(FooModel(k1="a1", date="b1", username="tauno"))
 
 
+        # returns both MyModel and FooModel items
         pkrows = fdao.query_pk(FooKey(k1="a1"))
+        assert len(pkrows) == 4
         pprint(pkrows)
 
-        skrows = fdao.query_beg(FooKey(k1="a1"))
-        pprint(skrows)
 
+        # returns only FooModel items (because of !Foo in SK rules)
+        skrows = fdao.query_beg(FooKey(k1="a1"))
+        assert len(skrows) == 2
+
+
+        # gets only 'b' row
+        sk2rows = fdao.query_beg(FooKey(k1="a1", date="b"))
+        assert len(sk2rows) == 1
         def beg_create(k, val):
-            print(k,val)
             return k.begins_with(val)
 
-        other_skrows = fdao.query_cond(FooKey(k1="a1"), beg_create)
-        pprint(other_skrows)
-
-        assert skrows["Items"] == other_skrows["Items"]
-        #assert skrows == other_skrows
+        sk3rows = fdao.query_cond(FooKey(k1="a1", date="a"), beg_create)
+        print(sk3rows)
+        assert len(sk3rows) == 1
+        assert sk3rows[0]["date"] == "a1"
