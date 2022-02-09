@@ -134,10 +134,11 @@ def dynamo_ls() -> List[str]:
 def sqs_queue(queue_name: str) -> Callable[[Any], None]:
     """ creates queue, returns function that can be used to send messages """
     sqs = boto3.client("sqs")
-    sqs.create_queue(QueueName=queue_name)
+    create_resp = sqs.create_queue(QueueName=queue_name)
+    qurl = create_resp["QueueUrl"]
 
     def sqs_sender(msg):
-        sqs.send_message(QueueUrl=queue_name, MessageBody=msg)
+        sqs.send_message(QueueUrl=qurl, MessageBody=msg)
 
     return sqs_sender
 
