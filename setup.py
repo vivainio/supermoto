@@ -2,7 +2,7 @@ from distutils.core import setup
 
 setup(
     name="supermoto",
-    version="1.4.0",
+    version="1.5.0",
     description='Helpers for "moto" tests, and other AWS test resource setup',
     author="Ville M. Vainio",
     author_email="ville.vainio@basware.com",
