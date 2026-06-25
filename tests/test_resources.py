@@ -1,5 +1,5 @@
 from supermoto import resources
-from moto import mock_dynamodb2, mock_sqs, mock_s3, mock_ecs, mock_ec2
+from moto import mock_dynamodb, mock_sqs, mock_s3, mock_ecs, mock_ec2
 
 from supermoto.resources import EcsCluster, IndexSpec
 import boto3
@@ -9,7 +9,7 @@ TEST_BUCKET = "bukeet"
 
 
 def test_dynamo_table():
-    with mock_dynamodb2():
+    with mock_dynamodb():
         putter = resources.dynamo_table("hello")
 
         putter({
@@ -70,7 +70,7 @@ def test_ecs():
     )
     with mock_ecs(), mock_ec2():
         resources.ecs_cluster(cl)
-        ecs = boto3.client("ecs")
+        ecs = boto3.client("ecs", region_name="eu-west-1")
         ran = ecs.run_task(cluster=cl.cluster_name,
                            taskDefinition=cl.task_definitions[0]
                            )

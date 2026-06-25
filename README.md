@@ -17,11 +17,11 @@ pip install supermoto
 ## Quick start
 
 ```python
-from moto import mock_dynamodb2, mock_s3
+from moto import mock_dynamodb, mock_s3
 from supermoto import resources
 
 def test_something():
-    with mock_dynamodb2():
+    with mock_dynamodb():
         put = resources.dynamo_table("my-table")      # creates table, returns a putter
         put({"id": "abc", "name": "thing"})            # add a seed row
         rows = resources.dynamo_dump("my-table")       # read it all back
@@ -120,14 +120,22 @@ EC2 instance and registers it as a container instance (so `run_task` works under
 
 ## Development
 
-This repo uses a tiny `tasks.py` runner:
+Packaging uses [`uv`](https://docs.astral.sh/uv/) and `pyproject.toml`:
+
+```bash
+uv sync              # install deps (incl. dev group: moto, pytest, mypy)
+uv run pytest        # run tests (from tests/)
+uv build             # build sdist + wheel
+```
+
+There's also a tiny `tasks.py` runner wrapping the above:
 
 ```bash
 py tasks.py test     # run pytest (from tests/)
-py tasks.py check    # mypy
-py tasks.py black    # format
+py tasks.py check    # mypy + ruff check
+py tasks.py fmt      # ruff format
 py tasks.py docs     # regenerate HTML docs with pdoc3
-py tasks.py publish  # build sdist + twine upload
+py tasks.py publish  # uv build + twine upload (CI publishes on GitHub release)
 ```
 
 ## License

@@ -1,6 +1,9 @@
+from __future__ import annotations
+
 import json
+from collections.abc import Callable
 from dataclasses import dataclass, field
-from typing import List, Callable, Any, Dict, Optional
+from typing import Any
 
 import boto3
 
@@ -10,13 +13,13 @@ from .helpers import generate_instance_identity_document
 @dataclass
 class EcsCluster:
     cluster_name: str
-    task_definitions: List[str]
+    task_definitions: list[str]
 
 
 _dynamo_endpoint = None
 
 
-def set_dynamo_endpoint_url(endpoint_url: Optional[str]):
+def set_dynamo_endpoint_url(endpoint_url: str | None):
     """ use this to override endpoint, e.g. to local simulator """
     global _dynamo_endpoint
     _dynamo_endpoint = endpoint_url
@@ -42,11 +45,11 @@ class IndexSpec:
     name: str
     pk: str = "GSI1PK"
     sk: str = "GSI1SK"
-    projection: Dict[str, Any] = field(default_factory=lambda: {"ProjectionType": "ALL"})
+    projection: dict[str, Any] = field(default_factory=lambda: {"ProjectionType": "ALL"})
 
 
 def dynamo_table(table_name: str, id_attribute: str = "id", range_attribute=None, delete=False,
-                 indexes: List[IndexSpec] = []):
+                 indexes: list[IndexSpec] | None = None):
     ddb = dynamo_resource()
     client = dynamo_client()
 
@@ -126,7 +129,7 @@ def dynamo_index_dump(table_name: str, index_name: str):
     return r["Items"]
 
 
-def dynamo_ls() -> List[str]:
+def dynamo_ls() -> list[str]:
     ddb = dynamo_client()
     return ddb.list_tables()["TableNames"]
 
@@ -161,14 +164,14 @@ def s3_bucket(bucket_name: str) -> Callable[[str, bytes], None]:
     return s3_put
 
 
-def s3_ls(bucket_name: str) -> List[str]:
+def s3_ls(bucket_name: str) -> list[str]:
     """ list all files in the bucket """
     client = boto3.client("s3", region_name="eu-west-1")
     resp = client.list_objects(Bucket=bucket_name)
     return [ent["Key"] for ent in resp["Contents"]]
 
 
-def s3_get_objects(bucket_name: str, prefix: str = None) -> Dict[str, bytes]:
+def s3_get_objects(bucket_name: str, prefix: str | None = None) -> dict[str, bytes]:
     """ load all files in the bucket to dict"""
     client = boto3.client("s3", region_name="eu-west-1")
     if prefix:
@@ -237,6 +240,7 @@ def ecs_cluster(definition: EcsCluster):
             containerDefinitions=[
                 {
                     "name": "supermoto-taskdef-" + td,
+                    "image": "supermoto-image",
                     "memory": 400,
                     "essential": True,
                     "environment": [

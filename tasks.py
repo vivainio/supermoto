@@ -10,24 +10,26 @@ PACKAGE = "supermoto"
 
 def do_check(args):
     """ typecheck, lint etc goes here """
-    c("mypy supermoto")
+    c("uv run mypy supermoto")
+    c("uv run ruff check supermoto")
 
 
-def do_black(args):
-    """ do 'black' reformat of all code """
-    c("py -m black supermoto")
+def do_fmt(args):
+    """ reformat all code with ruff """
+    c("uv run ruff format supermoto")
 
 
 def do_publish(args):
+    """ build with uv and upload with twine (CI publishes on release) """
     if os.path.isdir("dist"):
         shutil.rmtree("dist")
-    c("py setup.py sdist")
-    c("twine upload dist/*")
+    c("uv build")
+    c("uv run twine upload dist/*")
 
 
 def do_test(args):
     os.chdir("tests")
-    c("pytest")
+    c("uv run pytest")
 
 
 def default():
@@ -35,7 +37,7 @@ def default():
 
 
 def do_docs(args):
-    c("pdoc3 -o docs --force --html " + PACKAGE)
+    c("uv run pdoc3 -o docs --force --html " + PACKAGE)
     c(f"mv docs/{PACKAGE}/* docs")
     os.rmdir("docs/" + PACKAGE)
 

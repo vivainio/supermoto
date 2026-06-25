@@ -1,0 +1,49 @@
+[project]
+name = "supermoto"
+version = "1.5.0"
+description = 'Helpers for "moto" tests, and other AWS test resource setup'
+readme = "README.md"
+requires-python = ">=3.9"
+license = "MIT"
+license-files = ["LICENSE"]
+authors = [{ name = "Ville M. Vainio", email = "ville.vainio@basware.com" }]
+dependencies = ["boto3"]
+classifiers = [
+    "Programming Language :: Python :: 3",
+    "Topic :: Software Development :: Testing",
+    "Intended Audience :: Developers",
+]
+
+[project.urls]
+Homepage = "https://github.com/vivainio/supermoto"
+Documentation = "https://vivainio.github.io/supermoto/"
+
+[dependency-groups]
+dev = ["moto<5", "pytest", "mypy", "ruff", "twine", "pdoc3"]
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.hatch.build.targets.wheel]
+packages = ["supermoto"]
+
+[tool.ruff]
+line-length = 100
+target-version = "py39"
+
+[tool.ruff.lint]
+select = [
+    "E",  # pycodestyle errors
+    "F",  # pyflakes
+    "I",  # isort
+    "UP", # pyupgrade
+]
+
+[tool.ruff.format]
+quote-style = "double"
+
+[tool.mypy]
+[[tool.mypy.overrides]]
+module = "boto3.*"
+ignore_missing_imports = true
